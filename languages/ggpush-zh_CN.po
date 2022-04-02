@@ -1,0 +1,86 @@
+msgid "Ggpush"
+msgstr "果果推送"
+
+msgid "Push record"
+msgstr "推送记录"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Baidu search engine general collection"
+msgstr "百度搜索引擎普通收录"
+
+msgid "Baidu search engine fast collection"
+msgstr "百度搜索引擎快速收录"
+
+msgid "Bing search engine"
+msgstr "必应搜索引擎"
+
+msgid "Search engine"
+msgstr "搜索引擎"
+
+msgid "Access token"
+msgstr "准入密钥"
+
+msgid "API key"
+msgstr "API密钥"
+
+msgid "Key"
+msgstr "密钥"
+
+msgid "IndexNow"
+msgstr "IndexNow"
+
+msgid "Microsoft Bing"
+msgstr "微软必应"
+
+msgid "Yandex"
+msgstr "Yandex"
+
+msgid "The key is a 32-bit random string. After filling in the key and saving it, a key text file with the same name will be generated in the root directory of your website"
+msgstr "密钥为32位随机字符串。填写密钥保存后，将会在您的网站根目录下生成同名的密钥文本文件"
+
+msgid "Please fill in the value of the token field in the API call address"
+msgstr "请填写接口调用地址中的token字段值"
+
+msgid "E.g:"
+msgstr "例如："
+
+msgid "Push Links via WP-Cron"
+msgstr "通过WP-Cron推送链接"
+
+msgid "You need to monitor %s regularly to push links"
+msgstr "您需要定时监控%s来推送链接"
+
+msgid "Push interval"
+msgstr "推送间隔"
+
+msgid "How many minutes to push once.If it is set to 0, it will not be pushed"
+msgstr "多少分钟推送一次，设置为0则不推送"
+
+msgid "Number of links per push"
+msgstr "每次推送链接数量"
+
+msgid "Push mode"
+msgstr "推送方式"
+
+msgid "Random"
+msgstr "随机"
+
+msgid "Latest"
+msgstr "最新"
+
+msgid "Push after the article is published"
+msgstr "发布文章后推送"
+
+msgid "Yes"
+msgstr "是"
+
+msgid "No"
+msgstr "否"
+
+msgid "Save Changes"
+msgstr "保存更改"
+
+msgid "Settings saved."
+msgstr "设置已保存。"
