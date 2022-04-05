@@ -84,3 +84,117 @@ msgstr "保存更改"
 
 msgid "Settings saved."
 msgstr "设置已保存。"
+
+msgid "items"
+msgstr "个项目"
+
+msgid "%1$s of %2$s"
+msgstr "第%1$s页，共%2$s页"
+
+msgid "Front Page"
+msgstr "首页"
+
+msgid "Previous Page"
+msgstr "上一页"
+
+msgid "Current Page"
+msgstr "当前页"
+
+msgid "Next"
+msgstr "下一页"
+
+msgid "Last page"
+msgstr "尾页"
+
+msgid "Select bulk action"
+msgstr "选择批量操作"
+
+msgid "Clear push record"
+msgstr "清空推送记录"
+
+msgid "1 day ago"
+msgstr "1天之前"
+
+msgid "3 days ago"
+msgstr "3天之前"
+
+msgid "30 days ago"
+msgstr "30天之前"
+
+msgid "All"
+msgstr "全部"
+
+msgid "Apply"
+msgstr "应用"
+
+msgid "Push platform"
+msgstr "推送平台"
+
+msgid "Push method"
+msgstr "推送方式"
+
+msgid "Number of push links"
+msgstr "推送链接数量"
+
+msgid "Push status"
+msgstr "推送状态"
+
+msgid "Push result status code"
+msgstr "推送结果状态码"
+
+msgid "Push time"
+msgstr "推送时间"
+
+msgid "Actions"
+msgstr "操作"
+
+msgid "Details"
+msgstr "详情"
+
+msgid "Baidu"
+msgstr "百度"
+
+msgid "360"
+msgstr "360"
+
+msgid "Sogou"
+msgstr "搜狗"
+
+msgid "Toutiao"
+msgstr "头条"
+
+msgid "Sm"
+msgstr "神马"
+
+msgid "Bing"
+msgstr "Bing"
+
+msgid "Google"
+msgstr "谷歌"
+
+msgid "General collection"
+msgstr "普通收录"
+
+msgid "Fast collection"
+msgstr "快速收录"
+
+msgid "Js submit"
+msgstr "Js提交"
+
+msgid "Api submit"
+msgstr "Api提交"
+
+msgid "Success"
+msgstr "成功"
+
+msgid "Failed"
+msgstr "失败"
+
+msgid "Unknown"
+msgstr "未知"
+
+msgid "Go back"
+msgstr "返回"
+
+msgid "No data"
+msgstr "暂无数据"

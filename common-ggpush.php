@@ -7,7 +7,7 @@ function ggpush_plugin_activation() {
 	$sql             = <<<SQL
 CREATE TABLE $table_name (
 	`record_id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-	`record_platform` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '推送平台:1 百度，2 360，3 搜狗，4 头条，5 神马，6 bing，7 谷歌 ',
+	`record_platform` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '推送平台：1 百度，2 360，3 搜狗，4 头条，5 神马，6 bing，7 谷歌，8 indexnow，9 yandex',
 	`record_mode` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '推送方式：1 普通收录，2 快速收录，3 js提交，4 api提交，5 indexnow',
 	`record_urls` LONGTEXT NULL DEFAULT NULL COMMENT '推送链接' COLLATE 'utf8mb4_general_ci',
 	`record_num` INT(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '推送链接数量',
@@ -77,7 +77,11 @@ function ggpush_field_callback( $args ) {
 	$options = get_option( 'ggpush_options' );
 	// 表单的值
 	$input_value = $options[ $id ] ?? '';
-	$form_html   = '';
+	if ( empty( $input_value ) && 'ggpush_indexnow_token' === $id ) {
+		// 随机生成indexnow token
+		$input_value = md5( get_home_url() . date( 'Y-m-d H:i:s' ) . mt_rand( 1000, 9999 ) );
+	}
+	$form_html = '';
 	switch ( $form_type ) {
 		case 'input':
 			$form_html = '<input id="' . $id . '" type="' . $type . '" placeholder="' . esc_html( $form_placeholder ) . '" name="' . $input_name . '" value="' . esc_html( $input_value ) . '" class="regular-text">';
@@ -554,8 +558,8 @@ function ggpush_options_page() {
 		__( 'Push record', 'ggpush' ),
 		__( 'Push record', 'ggpush' ),
 		'manage_options',
-		GGPUSH_PLUGIN_DIR . 'record.php',
-		null
+		'ggpush_record',
+		'ggpush_record_html'
 	);
 
 	add_submenu_page(
@@ -608,6 +612,36 @@ function ggpush_settings_html() {
         </form>
     </div>
 	<?php
+}
+
+/**
+ * 推送记录
+ */
+function ggpush_record_html() {
+	// 检查用户权限
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	global $wpdb;
+	$table_name  = $wpdb->prefix . 'ggpush_records';
+	$current_url = self_admin_url( 'admin.php?page=ggpush_record' );
+	// 清除记录
+	if ( isset( $_GET['ggpush_clear_day'] ) ) {
+		$ggpush_clear_day = (int) $_GET['ggpush_clear_day'];
+		if ( $ggpush_clear_day <= 0 ) {
+			$end_record_date_time = time();
+		} else if ( 1 === $ggpush_clear_day ) {
+			$end_record_date_time = strtotime( '-1 day' );
+		} else {
+			$end_record_date_time = strtotime( '-' . $ggpush_clear_day . ' days' );
+		}
+		$end_record_date = date( 'Y-m-d H:i:s', $end_record_date_time );
+		$sql             = 'DELETE FROM `' . $table_name . '` where `record_date` <= "' . $end_record_date . '"';
+		$wpdb->query( $sql );
+		require_once GGPUSH_PLUGIN_DIR . 'views/record-clear.php';
+		exit();
+	}
+	require_once GGPUSH_PLUGIN_DIR . 'views/record-index.php';
 }
 
 /**
@@ -1028,4 +1062,80 @@ function ggpush_save_record( $data ) {
 	$table_name = $wpdb->prefix . 'ggpush_records';
 
 	return $wpdb->insert( $table_name, $data );
+}
+
+/**
+ * 格式化推送平台
+ *
+ * @param $record_platform
+ *
+ * @return mixed|string|void
+ */
+function ggpush_format_record_platform( $record_platform ) {
+	switch ( $record_platform ) {
+		case 1:
+			return __( 'Baidu', 'ggpush' );
+		case 2:
+			return __( '360', 'ggpush' );
+		case 3:
+			return __( 'Sogou', 'ggpush' );
+		case 4:
+			return __( 'Toutiao', 'ggpush' );
+		case 5:
+			return __( 'Sm', 'ggpush' );
+		case 6:
+			return __( 'Bing', 'ggpush' );
+		case 7:
+			return __( 'Google', 'ggpush' );
+		case 8:
+			return __( 'Indexnow', 'ggpush' );
+		case 9:
+			return __( 'Yandex', 'ggpush' );
+	}
+
+	return $record_platform;
+}
+
+/**
+ * 格式化推送方式
+ *
+ * @param $record_mode
+ *
+ * @return mixed|string|void
+ */
+function ggpush_format_record_mode( $record_mode ) {
+	switch ( $record_mode ) {
+		case 1:
+			return __( 'General collection', 'ggpush' );
+		case 2:
+			return __( 'Fast collection', 'ggpush' );
+		case 3:
+			return __( 'Js submit', 'ggpush' );
+		case 4:
+			return __( 'Api submit', 'ggpush' );
+		case 5:
+			return __( 'Indexnow', 'ggpush' );
+	}
+
+	return $record_mode;
+}
+
+/**
+ * 格式化推送结果
+ *
+ * @param $result_status
+ *
+ * @return mixed|string|void
+ */
+function ggpush_format_result_status( $result_status ) {
+	switch ( $result_status ) {
+		case 1:
+			return __( 'Success', 'ggpush' );
+		case 2:
+			return __( 'Failed', 'ggpush' );
+		case 3:
+			return __( 'Unknown', 'ggpush' );
+	}
+
+	return $result_status;
 }
