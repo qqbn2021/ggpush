@@ -32,11 +32,11 @@ SQL;
 
 // 删除插件执行的代码
 function ggpush_plugin_uninstall() {
-    // 删除表
+	// 删除表
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'ggpush_records';
 	$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_name . '`' );
-    // 删除配置
+	// 删除配置
 	delete_option( 'ggpush_options' );
 }
 
@@ -105,7 +105,7 @@ function ggpush_field_callback( $args ) {
 			$len              = count( $form_data );
 			foreach ( $form_data as $k => $v ) {
 				$checked = '';
-				if ( in_array( $v['value'], $input_value ) ) {
+				if ( ! empty( $input_value ) && in_array( $v['value'], $input_value ) ) {
 					$checked = 'checked="checked"';
 				}
 				$checkbox_options .= '<label><input type="checkbox" value="' . $v['value'] . '" id="' . $id . '_' . $v['value'] . '" name="' . $input_name . '[]" ' . $checked . '>' . $v['title'] . '</label>';
