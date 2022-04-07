@@ -22,7 +22,7 @@
 
 打开百度站长平台的普通收录页面，找到API提交的接口调用地址。
 
-例如：接口调用地址为http://data.zz.baidu.com/urls?*site*=您的网站主页网址&*token*=准入密钥
+例如：接口调用地址为http://data.zz.baidu.com/urls?site=您的网站主页网址&token=准入密钥
 
 则准入密钥为`token=`后面的字符串。
 
