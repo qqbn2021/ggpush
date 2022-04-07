@@ -79,7 +79,7 @@ if ( ! function_exists( 'add_action' ) ) {
 					echo '<td>' . ggpush_format_result_status( $result['record_result_status'] ) . '</td>';
 					echo '<td>' . $result['record_result_code'] . '</td>';
 					echo '<td>' . $result['record_date'] . '</td>';
-					echo '<td><a href="' . $current_url . '&record_id=' . $result['record_id'] . '" target="_blank">' . __( 'Details', 'ggpush' ) . '</a></td>';
+					echo '<td><a href="' . $current_url . '&record_id=' . $result['record_id'] . '">' . __( 'Details', 'ggpush' ) . '</a></td>';
 					echo '</tr>';
 				}
 			} else {
@@ -88,13 +88,13 @@ if ( ! function_exists( 'add_action' ) ) {
 			?>
             </tbody>
         </table>
-        <?php
-            if ($total > 0){
-        ?>
-        <div class="tablenav bottom">
-            <div class="tablenav-pages"><span
-                        class="displaying-num"><?php echo $total . ' ' . __( 'items', 'ggpush' ); ?></span>
-                <span class="pagination-links">
+		<?php
+		if ( $total > 0 ) {
+			?>
+            <div class="tablenav bottom">
+                <div class="tablenav-pages"><span
+                            class="displaying-num"><?php echo $total . ' ' . __( 'items', 'ggpush' ); ?></span>
+                    <span class="pagination-links">
                     <a class="first-page button" href="<?php echo $current_url; ?>">
                         <span class="screen-reader-text"><?php _e( 'Front Page', 'ggpush' ); ?></span><span
                                 aria-hidden="true">«</span>
@@ -108,20 +108,52 @@ if ( ! function_exists( 'add_action' ) ) {
                             <?php echo sprintf( __( '%1$s of %2$s', 'ggpush' ), $paged, $total_paged ); ?>
                         </span>
                     </span>
-                <a class="next-page button" href="<?php echo $current_url . '&paged=' . $next_page; ?>">
-                    <span class="screen-reader-text"><?php _e( 'Next', 'ggpush' ); ?></span><span
-                            aria-hidden="true">›</span>
-                </a>
-                <a class="last-page button" href="<?php echo $current_url . '&paged=' . $total_paged; ?>">
-                    <span class="screen-reader-text"><?php _e( 'Last page', 'ggpush' ); ?></span><span
-                            aria-hidden="true">»</span>
-                </a>
-                </span>
+                    <a class="next-page button" href="<?php echo $current_url . '&paged=' . $next_page; ?>">
+                        <span class="screen-reader-text"><?php _e( 'Next', 'ggpush' ); ?></span><span
+                                aria-hidden="true">›</span>
+                    </a>
+                    <a class="last-page button" href="<?php echo $current_url . '&paged=' . $total_paged; ?>">
+                        <span class="screen-reader-text"><?php _e( 'Last page', 'ggpush' ); ?></span><span
+                                aria-hidden="true">»</span>
+                    </a>
+                    </span>
+                </div>
+                <br class="clear">
             </div>
-            <br class="clear">
-        </div>
-        <?php
-            }
-        ?>
+			<?php
+		}
+		?>
     </form>
+    <div class="alignleft">
+		<?php
+		// 展示定时任务执行情况
+		$ggpush_crons = [
+			'ggpush_run_baidu_cron'      => [
+				'title'     => __( 'Baidu search engine general collection', 'ggpush' ),
+				'cron_time' => wp_next_scheduled( 'ggpush_run_baidu_cron' )
+			],
+			'ggpush_run_baidu_fast_cron' => [
+				'title'     => __( 'Baidu search engine fast collection', 'ggpush' ),
+				'cron_time' => wp_next_scheduled( 'ggpush_run_baidu_fast_cron' )
+			],
+			'ggpush_run_bing_cron'       => [
+				'title'     => __( 'Bing search engine', 'ggpush' ),
+				'cron_time' => wp_next_scheduled( 'ggpush_run_bing_cron' )
+			],
+			'ggpush_run_indexnow_cron'   => [
+				'title'     => __( 'IndexNow', 'ggpush' ),
+				'cron_time' => wp_next_scheduled( 'ggpush_run_indexnow_cron' )
+			]
+		];
+		foreach ( $ggpush_crons as $ggpush_cron ) {
+			$ggpush_cron_str = $ggpush_cron['title'];
+			if ( empty( $ggpush_cron['cron_time'] ) ) {
+				$ggpush_cron_str = sprintf( __( '%s scheduled task is not running', 'ggpush' ), $ggpush_cron['title'] );
+			} else {
+				$ggpush_cron_str = sprintf( __( 'Next running time of %s scheduled task:', 'ggpush' ), $ggpush_cron['title'] ) . date( 'Y-m-d H:i:s', $ggpush_cron['cron_time'] );
+			}
+			echo '<p>' . $ggpush_cron_str . '</p>';
+		}
+		?>
+    </div>
 </div>

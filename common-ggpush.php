@@ -32,9 +32,12 @@ SQL;
 
 // 删除插件执行的代码
 function ggpush_plugin_uninstall() {
+    // 删除表
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'ggpush_records';
 	$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_name . '`' );
+    // 删除配置
+	delete_option( 'ggpush_options' );
 }
 
 // 禁用插件执行的代码
@@ -626,7 +629,7 @@ function ggpush_record_html() {
 	$table_name  = $wpdb->prefix . 'ggpush_records';
 	$current_url = self_admin_url( 'admin.php?page=ggpush_record' );
 	// 清除记录
-	if ( isset( $_GET['ggpush_clear_day'] ) ) {
+	if ( isset( $_GET['ggpush_clear_day'] ) && wp_verify_nonce( $_GET['ggpushnonce'], 'delete_ggpush_record' ) ) {
 		$ggpush_clear_day = (int) $_GET['ggpush_clear_day'];
 		if ( $ggpush_clear_day <= 0 ) {
 			$end_record_date_time = time();
@@ -639,6 +642,12 @@ function ggpush_record_html() {
 		$sql             = 'DELETE FROM `' . $table_name . '` where `record_date` <= "' . $end_record_date . '"';
 		$wpdb->query( $sql );
 		require_once GGPUSH_PLUGIN_DIR . 'views/record-clear.php';
+		exit();
+	}
+
+	// 推送记录详情
+	if ( ! empty( $_GET['record_id'] ) ) {
+		require_once GGPUSH_PLUGIN_DIR . 'views/record-detail.php';
 		exit();
 	}
 	require_once GGPUSH_PLUGIN_DIR . 'views/record-index.php';
@@ -895,7 +904,7 @@ function ggpush_push_baidu( array $urls, $daily = false ) {
 	}
 	$data = [
 		'record_platform'      => '1',
-		'record_mode'          => '1',
+		'record_mode'          => $daily ? '2' : '1',
 		'record_urls'          => json_encode( $urls ),
 		'record_num'           => count( $urls ),
 		'record_result'        => $record_result,
@@ -990,7 +999,7 @@ function ggpush_run_bing_cron() {
 function ggpush_push_indexnow( $urls ) {
 	$options     = get_option( 'ggpush_options' );
 	$push        = new Ggpush();
-	$keyLocation = get_home_url() . 'ggpush_' . $options['ggpush_indexnow_token'] . '.txt';
+	$keyLocation = get_home_url() . '/ggpush_' . $options['ggpush_indexnow_token'] . '.txt';
 	foreach ( $options['ggpush_indexnow_search_engine'] as $v ) {
 		$host            = 'api.indexnow.org';
 		$record_platform = 8;
@@ -1012,7 +1021,11 @@ function ggpush_push_indexnow( $urls ) {
 		$record_result       = wp_remote_retrieve_body( $response );
 		$record_result_error = '';
 		if ( ! empty( $record_result ) ) {
-			$record_result = trim( strip_tags( $record_result ) );
+			$record_result        = trim( strip_tags( $record_result ) );
+			$record_result_is_arr = json_decode( $record_result, true );
+			if ( ! empty( $record_result_is_arr ) ) {
+				$record_result_error = $record_result_is_arr['message'];
+			}
 		}
 		$record_result_code = (int) wp_remote_retrieve_response_code( $response );
 		if ( $record_result_code === 200 ) {
@@ -1138,4 +1151,44 @@ function ggpush_format_result_status( $result_status ) {
 	}
 
 	return $result_status;
+}
+
+/**
+ * 发布新文章时推送链接
+ *
+ * @param $post_id
+ * @param $post
+ * @param $update
+ *
+ * @return void
+ */
+function ggpush_to_publish( $post_id, $post, $update ) {
+	if ( ! wp_is_post_revision( $post ) && $post->post_status === 'publish' ) {
+		// 存在配置
+		$ggpush_options = get_option( 'ggpush_options' );
+		if ( ! empty( $ggpush_options ) ) {
+			// 推送链接
+			$post_url = get_permalink( $post_id );
+			if ( ! empty( $ggpush_options['ggpush_baidu_token'] ) && $ggpush_options['ggpush_baidu_add_push'] == 1 ) {
+				ggpush_push_baidu( [ $post_url ] );
+			}
+			if ( ! empty( $ggpush_options['ggpush_baidu_token'] ) && $ggpush_options['ggpush_baidu_add_fast_push'] == 1 ) {
+				ggpush_push_baidu( [ $post_url ], true );
+			}
+			if ( ! empty( $ggpush_options['ggpush_bing_token'] ) && $ggpush_options['ggpush_bing_add_push'] == 1 ) {
+				ggpush_push_bing( [ $post_url ] );
+			}
+			if ( ! empty( $ggpush_options['ggpush_indexnow_token'] ) && $ggpush_options['ggpush_indexnow_add_push'] == 1 ) {
+				ggpush_push_indexnow( [ $post_url ] );
+			}
+		}
+	}
+}
+
+/**
+ * 加载多语言
+ * @return void
+ */
+function ggpush_load_textdomain() {
+	load_plugin_textdomain( 'ggpush', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 }

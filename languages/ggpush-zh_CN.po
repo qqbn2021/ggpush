@@ -1,6 +1,12 @@
 msgid "Ggpush"
 msgstr "果果推送"
 
+msgid "Ggdoc"
+msgstr "果果文档"
+
+msgid "It supports Baidu search engine, Microsoft Bing search engine and Api submission link function in IndexNow mode, allowing search engines to discover new content links on your website faster."
+msgstr "支持百度搜索引擎、微软Bing搜索引擎以及IndexNow方式的Api提交链接功能，让搜索引擎更快的发现您网站上的新内容链接。"
+
 msgid "Push record"
 msgstr "推送记录"
 
@@ -198,3 +204,18 @@ msgstr "返回"
 
 msgid "No data"
 msgstr "暂无数据"
+
+msgid "Push links"
+msgstr "推送链接"
+
+msgid "Push response data"
+msgstr "推送响应数据"
+
+msgid "Reason for failure"
+msgstr "失败原因"
+
+msgid "%s scheduled task is not running"
+msgstr "%s定时任务未运行"
+
+msgid "Next running time of %s scheduled task:"
+msgstr "%s定时任务下次运行时间："
