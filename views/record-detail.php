@@ -5,8 +5,12 @@ if ( ! function_exists( 'add_action' ) ) {
 	exit;
 }
 $table_name  = $wpdb->prefix . 'ggpush_records';
-$sql         = 'select * from `' . $table_name . '` where `record_id` = ' . intval( $_GET['record_id'] ) . ' limit 1';
-$results     = $wpdb->get_results( $sql, 'ARRAY_A' );
+$sql         = 'select * from `' . $table_name . '` where `record_id` = %d limit 1';
+$query       = $wpdb->prepare(
+	$sql,
+	intval( ggpush_get( 'record_id', 0 ) )
+);
+$results     = $wpdb->get_results( $query, ARRAY_A );
 $record_data = [];
 if ( ! empty( $results ) ) {
 	foreach ( $results as $result ) {
@@ -25,31 +29,31 @@ if ( empty( $record_data ) ) {
         <tbody>
         <tr>
             <th scope="col">Id</th>
-            <td><?php echo $record_data['record_id']; ?></td>
+            <td><?php echo esc_html( $record_data['record_id'] ); ?></td>
         </tr>
         <tr>
             <th scope="col"><?php _e( 'Push platform', 'ggpush' ); ?></th>
-            <td><?php echo ggpush_format_record_platform( $record_data['record_platform'] ); ?></td>
+            <td><?php echo esc_html( ggpush_format_record_platform( $record_data['record_platform'] ) ); ?></td>
         </tr>
         <tr>
             <th scope="col"><?php _e( 'Push method', 'ggpush' ); ?></th>
-            <td><?php echo ggpush_format_record_mode( $record_data['record_mode'] ); ?></td>
+            <td><?php echo esc_html( ggpush_format_record_mode( $record_data['record_mode'] ) ); ?></td>
         </tr>
         <tr>
             <th scope="col"><?php _e( 'Number of push links', 'ggpush' ); ?></th>
-            <td><?php echo $record_data['record_num']; ?></td>
+            <td><?php echo esc_html( $record_data['record_num'] ); ?></td>
         </tr>
         <tr>
             <th scope="col"><?php _e( 'Push status', 'ggpush' ); ?></th>
-            <td><?php echo ggpush_format_result_status( $record_data['record_result_status'] ); ?></td>
+            <td><?php echo esc_html( ggpush_format_result_status( $record_data['record_result_status'] ) ); ?></td>
         </tr>
         <tr>
             <th scope="col"><?php _e( 'Push result status code', 'ggpush' ); ?></th>
-            <td><?php echo $record_data['record_result_code']; ?></td>
+            <td><?php echo esc_html( $record_data['record_result_code'] ); ?></td>
         </tr>
         <tr>
             <th scope="col"><?php _e( 'Push time', 'ggpush' ); ?></th>
-            <td><?php echo $record_data['record_date']; ?></td>
+            <td><?php echo esc_html( $record_data['record_date'] ); ?></td>
         </tr>
         </tbody>
     </table>
@@ -60,7 +64,8 @@ if ( empty( $record_data ) ) {
         </tr>
         <tr>
             <td>
-                <textarea style="width: 100% !important;" readonly="readonly" rows="5"><?php echo implode(PHP_EOL,json_decode($record_data['record_urls'],true)); ?></textarea>
+                <textarea style="width: 100% !important;" readonly="readonly"
+                          rows="5"><?php echo esc_html( implode( PHP_EOL, json_decode( $record_data['record_urls'], true ) ) ); ?></textarea>
             </td>
         </tr>
     </table>
@@ -71,29 +76,30 @@ if ( empty( $record_data ) ) {
         </tr>
         <tr>
             <td>
-                <textarea style="width: 100% !important;" readonly="readonly" rows="5"><?php echo $record_data['record_result']; ?></textarea>
+                <textarea style="width: 100% !important;" readonly="readonly"
+                          rows="5"><?php echo esc_html( $record_data['record_result'] ); ?></textarea>
             </td>
         </tr>
     </table>
     <br class="clear">
-    <?php
-        if (!empty($record_data['record_result_error'])){
-            ?>
-            <table class="wp-list-table widefat fixed">
-                <tr>
-                    <th><?php _e( 'Reason for failure', 'ggpush' ); ?></th>
-                </tr>
-                <tr>
-                    <td>
-                        <textarea style="width: 100% !important;" readonly="readonly" rows="5"><?php echo $record_data['record_result_error']; ?></textarea>
-                    </td>
-                </tr>
-            </table>
-            <br class="clear">
-
-            <?php
-        }
-    ?>
+	<?php
+	if ( ! empty( $record_data['record_result_error'] ) ) {
+		?>
+        <table class="wp-list-table widefat fixed">
+            <tr>
+                <th><?php _e( 'Reason for failure', 'ggpush' ); ?></th>
+            </tr>
+            <tr>
+                <td>
+                    <textarea style="width: 100% !important;" readonly="readonly"
+                              rows="5"><?php echo esc_html( $record_data['record_result_error'] ); ?></textarea>
+                </td>
+            </tr>
+        </table>
+        <br class="clear">
+		<?php
+	}
+	?>
     <a class="button button-primary" href="javascript:void(0);"
        onclick="history.back();"><?php _e( 'Go back', 'ggpush' ); ?></a>
 </div>

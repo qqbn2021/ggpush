@@ -5,7 +5,7 @@
  * Description:It supports Baidu search engine, Microsoft Bing search engine and Api submission link function in IndexNow mode, allowing search engines to discover new content links on your website faster.
  * Version:0.0.1
  * Requires at least: 5.0
- * Requires PHP:7.0
+ * Requires PHP:5.4
  * Author:Ggdoc
  * Author URI:https://www.ggdoc.cn
  * License:GPL v2 or later

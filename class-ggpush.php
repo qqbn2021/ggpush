@@ -15,7 +15,7 @@ class Ggpush {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function push( array $urls, string $site, string $token, string $type = '' ) {
+	public function push( $urls, $site, $token, $type = '' ) {
 		$params = [
 			'site'  => $site,
 			'token' => $token
@@ -42,7 +42,7 @@ class Ggpush {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function bingPush( array $urls, string $site, string $token ) {
+	public function bingPush( $urls, $site, $token ) {
 		return wp_remote_post( 'https://ssl.bing.com/webmaster/api.svc/json/SubmitUrlbatch?apikey=' . $token, [
 			'body'    => json_encode( [
 				'siteUrl' => $site,
@@ -65,7 +65,7 @@ class Ggpush {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function indexNowPush( array $urls, string $host, string $key, string $keyLocation, string $searchengine ) {
+	public function indexNowPush( $urls, $host, $key, $keyLocation, $searchengine ) {
 		$data = [
 			'host'        => $host,
 			'key'         => $key,

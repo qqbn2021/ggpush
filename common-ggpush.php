@@ -36,6 +36,8 @@ function ggpush_plugin_uninstall() {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'ggpush_records';
 	$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_name . '`' );
+	// 删除其它IndexNow密钥文件
+	ggpush_delete_indexnow_keyfile( true );
 	// 删除配置
 	delete_option( 'ggpush_options' );
 }
@@ -53,7 +55,7 @@ function ggpush_plugin_deactivation() {
  * 设置说明
  */
 function ggpush_section_callback() {
-	echo sprintf( __( 'You need to monitor %s regularly to push links', 'ggpush' ), '<code>' . get_home_url() . '/wp-cron.php' . '</code>' );
+	echo esc_html(sprintf( __( 'You need to monitor %s regularly to push links', 'ggpush' ), get_home_url() . '/wp-cron.php' ));
 }
 
 /**
@@ -65,21 +67,21 @@ function ggpush_field_callback( $args ) {
 	// 表单的id或name字段
 	$id = $args['label_for'];
 	// 表单的类型
-	$form_type = $args['form_type'] ?? 'input';
+	$form_type = isset( $args['form_type'] ) ? $args['form_type'] : 'input';
 	// 输入表单说明
-	$form_desc = $args['form_desc'] ?? '';
+	$form_desc = isset( $args['form_desc'] ) ? $args['form_desc'] : '';
 	// 输入表单type
-	$type = $args['type'] ?? 'text';
+	$type = isset( $args['type'] ) ? $args['type'] : 'text';
 	// 输入表单placeholder
-	$form_placeholder = $args['form_placeholder'] ?? '';
+	$form_placeholder = isset( $args['form_placeholder'] ) ? $args['form_placeholder'] : '';
 	// 下拉框等选项值
-	$form_data = $args['form_data'] ?? [];
+	$form_data = isset( $args['form_data'] ) ? $args['form_data'] : [];
 	// 表单的名称
 	$input_name = 'ggpush_options[' . $id . ']';
 	// 获取表单选项中的值
 	$options = get_option( 'ggpush_options' );
 	// 表单的值
-	$input_value = $options[ $id ] ?? '';
+	$input_value = isset( $options[ $id ] ) ? $options[ $id ] : '';
 	if ( empty( $input_value ) && 'ggpush_indexnow_token' === $id ) {
 		// 随机生成indexnow token
 		$input_value = md5( get_home_url() . date( 'Y-m-d H:i:s' ) . mt_rand( 1000, 9999 ) );
@@ -87,39 +89,65 @@ function ggpush_field_callback( $args ) {
 	$form_html = '';
 	switch ( $form_type ) {
 		case 'input':
-			$form_html = '<input id="' . $id . '" type="' . $type . '" placeholder="' . esc_html( $form_placeholder ) . '" name="' . $input_name . '" value="' . esc_html( $input_value ) . '" class="regular-text">';
+			?>
+            <input id="<?php echo esc_attr( $id ); ?>" type="<?php echo esc_attr( $type ); ?>"
+                   placeholder="<?php echo esc_attr( $form_placeholder ); ?>"
+                   name="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $input_value ); ?>"
+                   class="regular-text">
+			<?php
 			break;
 		case 'select':
-			$select_options = '';
-			foreach ( $form_data as $v ) {
-				$selected = '';
-				if ( $v['value'] == $input_value ) {
-					$selected = 'selected="selected"';
+			?>
+            <select id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $input_name ); ?>">
+				<?php
+				foreach ( $form_data as $v ) {
+					$selected = '';
+					if ( $v['value'] == $input_value ) {
+						$selected = 'selected';
+					}
+					?>
+                    <option <?php selected( $selected, 'selected' ); ?>
+                            value="<?php echo esc_attr( $v['value'] ); ?>"><?php echo esc_html( $v['title'] ); ?></option>
+					<?php
 				}
-				$select_options .= '<option ' . $selected . ' value="' . $v['value'] . '">' . $v['title'] . '</option>';
-			}
-			$form_html = '<select id="' . $id . '" name="' . $input_name . '">' . $select_options . '</select>';
+				?>
+            </select>
+			<?php
 			break;
 		case 'checkbox':
-			$checkbox_options = '<fieldset><p>';
-			$len              = count( $form_data );
-			foreach ( $form_data as $k => $v ) {
-				$checked = '';
-				if ( ! empty( $input_value ) && in_array( $v['value'], $input_value ) ) {
-					$checked = 'checked="checked"';
-				}
-				$checkbox_options .= '<label><input type="checkbox" value="' . $v['value'] . '" id="' . $id . '_' . $v['value'] . '" name="' . $input_name . '[]" ' . $checked . '>' . $v['title'] . '</label>';
-				if ( $k < ( $len - 1 ) ) {
-					$checkbox_options .= '<br>';
-				}
-			}
-			$form_html = $checkbox_options . '</p></fieldset>';
+			?>
+            <fieldset><p>
+					<?php
+					$len = count( $form_data );
+					foreach ( $form_data as $k => $v ) {
+						$checked = '';
+						if ( ! empty( $input_value ) && in_array( $v['value'], $input_value ) ) {
+							$checked = 'checked';
+						}
+						?>
+                        <label>
+                            <input type="checkbox" value="<?php echo esc_attr( $v['value'] ); ?>"
+                                   id="<?php echo esc_attr( $id . '_' . $v['value'] ); ?>"
+                                   name="<?php echo esc_attr( $input_name . '[]' ); ?>"
+								<?php checked( $checked, 'checked' ); ?>><?php echo esc_html( $v['title'] ); ?>
+                        </label>
+						<?php
+						if ( $k < ( $len - 1 ) ) {
+							?>
+                            <br>
+							<?php
+						}
+					}
+					?>
+                </p></fieldset>
+			<?php
 			break;
 	}
 	if ( ! empty( $form_desc ) ) {
-		$form_html .= '<p class="description">' . esc_html( $form_desc ) . '</p>';
+		?>
+        <p class="description"><?php echo esc_html( $form_desc ); ?></p>
+		<?php
 	}
-	echo $form_html;
 }
 
 /**
@@ -591,6 +619,8 @@ function ggpush_settings_html() {
 	// 检查用户是否提交了表单
 	// 如果提交了表单，WordPress 会添加 "settings-updated" 参数到 $_GET 里。
 	if ( ! empty( $_GET['settings-updated'] ) ) {
+		// 删除其它IndexNow密钥文件
+		ggpush_delete_indexnow_keyfile();
 		// 添加更新信息
 		add_settings_error( 'ggpush_messages', 'ggpush_message', __( 'Settings saved.', 'ggpush' ), 'updated' );
 		// 更新定时任务
@@ -639,8 +669,12 @@ function ggpush_record_html() {
 			$end_record_date_time = strtotime( '-' . $ggpush_clear_day . ' days' );
 		}
 		$end_record_date = date( 'Y-m-d H:i:s', $end_record_date_time );
-		$sql             = 'DELETE FROM `' . $table_name . '` where `record_date` <= "' . $end_record_date . '"';
-		$wpdb->query( $sql );
+		$sql             = 'DELETE FROM `' . $table_name . '` where `record_date` <= %s';
+		$query       = $wpdb->prepare(
+			$sql,
+			$end_record_date
+		);
+		$wpdb->query( $query );
 		require_once GGPUSH_PLUGIN_DIR . 'views/record-clear.php';
 		exit();
 	}
@@ -697,7 +731,7 @@ function ggpush_cron_schedules( $schedules ) {
 	$options = get_option( 'ggpush_options' );
 
 	// 百度普通收录
-	$baidu_cron_interval = intval( $options['ggpush_baidu_interval'] ?? 0 );
+	$baidu_cron_interval = intval( isset( $options['ggpush_baidu_interval'] ) ? $options['ggpush_baidu_interval'] : 0 );
 	if ( $baidu_cron_interval > 0 ) {
 		$schedules['ggpush_baidu_cron'] = array(
 			'interval' => $baidu_cron_interval * 60,
@@ -708,7 +742,7 @@ function ggpush_cron_schedules( $schedules ) {
 	}
 
 	// 百度快速收录
-	$baidu_fast_cron_interval = intval( $options['ggpush_baidu_fast_interval'] ?? 0 );
+	$baidu_fast_cron_interval = intval( isset( $options['ggpush_baidu_fast_interval'] ) ? $options['ggpush_baidu_fast_interval'] : 0 );
 	if ( $baidu_fast_cron_interval > 0 ) {
 		$schedules['ggpush_baidu_fast_cron'] = array(
 			'interval' => $baidu_fast_cron_interval * 60,
@@ -719,7 +753,7 @@ function ggpush_cron_schedules( $schedules ) {
 	}
 
 	// bing收录
-	$bing_cron_interval = intval( $options['ggpush_bing_interval'] ?? 0 );
+	$bing_cron_interval = intval( isset( $options['ggpush_bing_interval'] ) ? $options['ggpush_bing_interval'] : 0 );
 	if ( $bing_cron_interval > 0 ) {
 		$schedules['ggpush_bing_cron'] = array(
 			'interval' => $bing_cron_interval * 60,
@@ -730,7 +764,7 @@ function ggpush_cron_schedules( $schedules ) {
 	}
 
 	// indexnow收录
-	$indexnow_cron_interval = intval( $options['ggpush_indexnow_interval'] ?? 0 );
+	$indexnow_cron_interval = intval( isset( $options['ggpush_indexnow_interval'] ) ? $options['ggpush_indexnow_interval'] : 0 );
 	if ( $indexnow_cron_interval > 0 ) {
 		$schedules['ggpush_indexnow_cron'] = array(
 			'interval' => $indexnow_cron_interval * 60,
@@ -854,7 +888,7 @@ function ggpush_delete_indexnow_cron() {
  *
  * @return array
  */
-function ggpush_get_post_url( int $num, bool $random ): array {
+function ggpush_get_post_url( $num, $random ) {
 	$data = [];
 	if ( $num > 0 ) {
 		$args      = array(
@@ -1191,4 +1225,49 @@ function ggpush_to_publish( $post_id, $post, $update ) {
  */
 function ggpush_load_textdomain() {
 	load_plugin_textdomain( 'ggpush', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}
+
+/**
+ * 删除indexnow的密钥文件
+ *
+ * @param bool $delete_current 是否删除当前密钥文件
+ *
+ * @return void
+ */
+function ggpush_delete_indexnow_keyfile( $delete_current = false ) {
+	$ggpush_files        = glob( ABSPATH . "ggpush_*.txt" );
+	$ggpush_options      = get_option( 'ggpush_options' );
+	$ggpush_current_file = '';
+	if ( ! empty( $ggpush_options['ggpush_indexnow_token'] ) ) {
+		$ggpush_current_file = 'ggpush_' . $ggpush_options['ggpush_indexnow_token'] . '.txt';
+	} else {
+		// 没有配置或者配置为空，需要删除
+		$delete_current = true;
+	}
+	if ( ! empty( $ggpush_files ) ) {
+		foreach ( $ggpush_files as $ggpush_file ) {
+			if ( ! $delete_current ) {
+				if ( false !== stripos( $ggpush_file, $ggpush_current_file ) ) {
+					continue;
+				}
+			}
+			@unlink( $ggpush_file );
+		}
+	}
+}
+
+/**
+ * 获取GET中的参数值
+ *
+ * @param $name
+ * @param $defValue
+ *
+ * @return mixed
+ */
+function ggpush_get( $name, $defValue = '' ) {
+	if ( isset( $_GET[ $name ] ) ) {
+		return $_GET[ $name ];
+	}
+
+	return $defValue;
 }

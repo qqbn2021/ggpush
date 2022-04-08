@@ -10,5 +10,5 @@ if ( ! function_exists( 'add_action' ) ) {
 	<p>
 		<?php _e( 'Success', 'ggpush' ); ?>
 	</p>
-	<a class="button button-primary" href="<?php echo $current_url;?>"><?php _e( 'Go back', 'ggpush' ); ?></a>
+	<a class="button button-primary" href="<?php echo esc_url($current_url);?>"><?php _e( 'Go back', 'ggpush' ); ?></a>
 </div>
