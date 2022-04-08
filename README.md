@@ -16,7 +16,7 @@
 
 ① 【开发中代码】从 https://github.com/qqbn2021/ggpush 下载压缩包源码（点击`Code` - `Download ZIP`）。解压成功后将`ggpush-main`文件夹名称改为`ggpush`文件夹名称。
 
-② 【开发中代码】从 https://github.com/qqbn2021/ggpush 克隆代码（git clone https://github.com/qqbn2021/ggpush.git），这个时候，文件夹的名称默认就是`ggpush`，就不需要改文件夹名称。
+② 【开发中代码】从 https://github.com/qqbn2021/ggpush 克隆代码（`git clone https://github.com/qqbn2021/ggpush.git`），这个时候，文件夹的名称默认就是`ggpush`，就不需要改文件夹名称。
 
 ③ 【已发布稳定代码】【推荐】从 https://github.com/qqbn2021/ggpush/tags 页面下载压缩包源码，解压后将文件夹名称（原文件夹名称为：`ggpush-版本号`）改为`ggpush`。
 
