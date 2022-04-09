@@ -20,6 +20,12 @@ PHP版本最低要求为`5.4`。
 
 方式一：
 
+WordPress官方插件库安装。
+
+搜索`果果推送`或者打开链接：https://wordpress.org/plugins/ggpush 下载安装。
+
+方式二：
+
 ① 【开发中代码】从 https://github.com/qqbn2021/ggpush 下载压缩包源码（点击`Code` - `Download ZIP`）。解压成功后将`ggpush-main`文件夹名称改为`ggpush`文件夹名称。
 
 ② 【开发中代码】从 https://github.com/qqbn2021/ggpush 克隆代码（`git clone https://github.com/qqbn2021/ggpush.git`），这个时候，文件夹的名称默认就是`ggpush`，就不需要改文件夹名称。
