@@ -1,8 +1,9 @@
 === 果果推送 ===
-Contributors: 果果文档
+Contributors: wyzda2021
 Donate link: https://www.ggdoc.cn
 Tags:baidu, Bing, bing站长, 百度, 百度站长平台, baiduseo, 百度普通收录, 百度快速收录, 推送, 主动提交, Bing链接提交, IndexNow链接提交, 定时提交链接
 Requires at least: 5.0
+Requires PHP:5.4
 Tested up to: 5.9
 Stable tag: 0.0.1
 License: GNU General Public License v2.0 or later
@@ -31,6 +32,33 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 5. 完成设置后，插件就安装完毕了。
 
 <a href="https://www.ggdoc.cn/chapter/pnzztu9qisfvyybg2e8nmeucuwkftefu.html" rel="friend">为了能够定时推送文章链接，请点击此链接进行WP-Cron配置</a>
+
+== Frequently Asked Questions ==
+
+= 百度搜索引擎的准入密钥在哪里获取？ =
+打开百度站长平台的普通收录页面，找到API提交的接口调用地址。
+例如：接口调用地址为http://data.zz.baidu.com/urls?site=您的网站主页网址&token=准入密钥
+则准入密钥为token=后面的字符串。
+
+= 必应搜索引擎的API密钥在哪里获取？ =
+可以在必应的站长平台右上方的设置按钮中找到。
+
+= IndexNow的密钥在哪里获取？ =
+不需要获取，只需要在插件设置那里填写32位随机字符串，插件会自动生成密钥验证文件。
+
+== Screenshots ==
+
+1. 百度搜索引擎普通收录Api提交设置界面
+2. 百度搜索引擎快速收录Api提交设置界面
+3. 微软必应搜索引擎Api提交设置界面
+4. IndexNow Api提交设置界面
+5. 推送记录列表页面
+6. 推送记录详情页面
+
+== Upgrade Notice ==
+
+= 0.0.1 =
+参考Changelog说明
 
 == Changelog ==
 

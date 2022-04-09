@@ -18,8 +18,6 @@ if ( ! function_exists( 'add_action' ) ) {
 	http_response_code( 404 );
 	exit;
 }
-// 定义本插件的版本号
-const GGPUSH_VERSION = '0.0.1';
 define( 'GGPUSH_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 require_once GGPUSH_PLUGIN_DIR . 'class-ggpush.php';
 require_once GGPUSH_PLUGIN_DIR . 'common-ggpush.php';
