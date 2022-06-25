@@ -10,25 +10,25 @@ class Ggpush_Base_Page
     public static function init_page()
     {
         // 注册一个新页面
-        register_setting('ggpush_base_page', 'ggpush_options', array('Ggpush_Plugin', 'sanitize'));
+        register_setting('ggpush-base-page', 'ggpush_options', array('Ggpush_Plugin', 'sanitize'));
 
         add_settings_section(
             'ggpush_section_base',
             null,
             null,
-            'ggpush_base_page'
+            'ggpush-base-page'
         );
 
         // 在新的设置页面添加表单输入框
         add_settings_field(
-            'ggpush_menu_position',
+            'menu_position',
             // 输入框说明文字
             '菜单显示位置',
-            array('Ggpush_Plugin', 'ggpush_field_callback'),
-            'ggpush_base_page',
+            array('Ggpush_Plugin', 'field_callback'),
+            'ggpush-base-page',
             'ggpush_section_base',
             array(
-                'label_for' => 'ggpush_menu_position',
+                'label_for' => 'menu_position',
                 'form_type' => 'select',
                 'form_data' => array(
                     array(
@@ -72,14 +72,14 @@ class Ggpush_Base_Page
         );
 
         add_settings_field(
-            'ggpush_push_timeout',
+            'push_timeout',
             // 输入框说明文字
             '请求超时时间',
-            array('Ggpush_Plugin', 'ggpush_field_callback'),
-            'ggpush_base_page',
+            array('Ggpush_Plugin', 'field_callback'),
+            'ggpush-base-page',
             'ggpush_section_base',
             array(
-                'label_for' => 'ggpush_push_timeout',
+                'label_for' => 'push_timeout',
                 'form_type' => 'input',
                 'type' => 'number',
                 'form_desc' => '请求超过多少秒后，自动停止推送，默认为30秒'

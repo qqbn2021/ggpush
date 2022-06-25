@@ -10,7 +10,7 @@ class Ggpush_Common
      * @param bool $enable 是否启用定时任务
      * @return void
      */
-    public static function ggpush_update_cron($enable = true)
+    public static function update_cron($enable = true)
     {
         if ($enable) {
             // 插件已激活，启用定时任务
@@ -31,17 +31,32 @@ class Ggpush_Common
      * 获取推送文章网址
      *
      * @param int $num 推送数据
-     * @param bool $random 是否随机
+     * @param int $type 1 最新 2 随机 3 伪随机
      *
      * @return array
      */
-    public static function ggpush_get_post_url($num, $random)
+    public static function get_post_url($num, $type)
     {
         $data = array();
         if ($num > 0) {
+            $offset = 0;
+            $order = 'DESC';
+            $orderby = 'ID';
+            if (2 == $type) {
+                $orderby = 'rand';
+            } else if (3 == $type) {
+                global $wpdb;
+                $table_name = $wpdb->prefix . 'posts';
+                $total = $wpdb->get_var('SELECT COUNT(*) FROM `' . $table_name . '`');
+                $order = 'ASC';
+                if ($total > $num) {
+                    $offset = mt_rand(0, $total - $num);
+                }
+            }
             $args = array(
-                'orderby' => $random ? 'rand' : 'ID',
-                'order' => 'DESC',
+                'orderby' => $orderby,
+                'offset' => $offset,
+                'order' => $order,
                 'post_status' => 'publish',
                 'posts_per_page' => $num
             );
@@ -61,11 +76,10 @@ class Ggpush_Common
      * @param array $urls
      * @param bool $daily
      */
-    public static function ggpush_push_baidu($urls, $daily = false)
+    public static function push_baidu($urls, $daily = false)
     {
-        $options = get_option('ggpush_options');
-        $response = Ggpush::push($urls, parse_url(get_home_url(), PHP_URL_HOST), $options['ggpush_baidu_token'], $daily ? 'daily' : '');
-        if (is_wp_error($response)){
+        $response = Ggpush::push($urls, parse_url(get_home_url(), PHP_URL_HOST), Ggpush_Plugin::get_option('baidu_token'), $daily ? 'daily' : '');
+        if (is_wp_error($response)) {
             $record_result_error = $response->get_error_message();
             $record_result_status = 2;
             $record_result = '';
@@ -100,7 +114,7 @@ class Ggpush_Common
             'record_result_status' => $record_result_status,
             'record_result_error' => $record_result_error,
         );
-        self::ggpush_save_record($data);
+        self::save_record($data);
     }
 
     /**
@@ -108,11 +122,10 @@ class Ggpush_Common
      *
      * @param $urls
      */
-    public static function ggpush_push_bing($urls)
+    public static function push_bing($urls)
     {
-        $options = get_option('ggpush_options');
-        $response = Ggpush::bing_push($urls, get_home_url(), $options['ggpush_bing_token']);
-        if (is_wp_error($response)){
+        $response = Ggpush::bing_push($urls, get_home_url(), Ggpush_Plugin::get_option('bing_token'));
+        if (is_wp_error($response)) {
             $record_result_error = $response->get_error_message();
             $record_result_status = 2;
             $record_result = '';
@@ -143,7 +156,7 @@ class Ggpush_Common
             'record_result_status' => $record_result_status,
             'record_result_error' => $record_result_error
         );
-        self::ggpush_save_record($data);
+        self::save_record($data);
     }
 
     /**
@@ -151,18 +164,13 @@ class Ggpush_Common
      *
      * @param $urls
      */
-    public static function ggpush_push_indexnow($urls)
+    public static function push_indexnow($urls)
     {
-        $options = get_option('ggpush_options');
-        $keyLocation = get_home_url() . '/ggpush-' . $options['ggpush_indexnow_token'] . '.txt';
-        foreach ($options['ggpush_indexnow_search_engine'] as $v) {
+        $keyLocation = get_home_url() . '/ggpush-' . Ggpush_Plugin::get_option('indexnow_token') . '.txt';
+        foreach (Ggpush_Plugin::get_option('indexnow_search_engine', array()) as $v) {
             $host = 'api.indexnow.org';
             $record_platform = 8;
             switch ($v) {
-//                case 1:
-//                    $record_platform = 8;
-//                    $host = 'api.indexnow.org';
-//                    break;
                 case 2:
                     $record_platform = 6;
                     $host = 'www.bing.com';
@@ -176,9 +184,9 @@ class Ggpush_Common
                     $host = 'search.seznam.cz';
                     break;
             }
-            $response = Ggpush::index_now_push($urls, parse_url(get_home_url(), PHP_URL_HOST), $options['ggpush_indexnow_token'], $keyLocation, $host);
+            $response = Ggpush::index_now_push($urls, parse_url(get_home_url(), PHP_URL_HOST), Ggpush_Plugin::get_option('indexnow_token'), $keyLocation, $host);
             $record_result_code = (int)wp_remote_retrieve_response_code($response);
-            if (is_wp_error($response)){
+            if (is_wp_error($response)) {
                 $record_result_error = $response->get_error_message();
                 $record_result_status = 2;
                 $record_result = '';
@@ -208,7 +216,7 @@ class Ggpush_Common
                 'record_result_status' => $record_result_status,
                 'record_result_error' => $record_result_error
             );
-            self::ggpush_save_record($data);
+            self::save_record($data);
         }
     }
 
@@ -219,7 +227,7 @@ class Ggpush_Common
      *
      * @return bool|int|mysqli_result|resource|null
      */
-    public static function ggpush_save_record($data)
+    public static function save_record($data)
     {
         if (empty($data)) {
             return false;
@@ -237,7 +245,7 @@ class Ggpush_Common
      *
      * @return mixed|string|void
      */
-    public static function ggpush_format_record_platform($record_platform)
+    public static function format_record_platform($record_platform)
     {
         switch ($record_platform) {
             case 1:
@@ -272,7 +280,7 @@ class Ggpush_Common
      *
      * @return mixed|string|void
      */
-    public static function ggpush_format_record_mode($record_mode)
+    public static function format_record_mode($record_mode)
     {
         switch ($record_mode) {
             case 1:
@@ -297,7 +305,7 @@ class Ggpush_Common
      *
      * @return mixed|string|void
      */
-    public static function ggpush_format_result_status($result_status)
+    public static function format_result_status($result_status)
     {
         switch ($result_status) {
             case 1:
@@ -318,13 +326,13 @@ class Ggpush_Common
      *
      * @return void
      */
-    public static function ggpush_delete_indexnow_keyfile($delete_current = false)
+    public static function delete_indexnow_keyfile($delete_current = false)
     {
+        global $ggpush_options;
         $ggpush_files = glob(ABSPATH . "ggpush-*.txt");
-        $ggpush_options = get_option('ggpush_options');
         $ggpush_current_file = '';
-        if (!empty($ggpush_options['ggpush_indexnow_token'])) {
-            $ggpush_current_file = 'ggpush-' . $ggpush_options['ggpush_indexnow_token'] . '.txt';
+        if (!empty($ggpush_options['indexnow_token'])) {
+            $ggpush_current_file = 'ggpush-' . $ggpush_options['indexnow_token'] . '.txt';
         } else {
             // 没有配置或者配置为空，需要删除
             $delete_current = true;
@@ -349,7 +357,7 @@ class Ggpush_Common
      *
      * @return mixed
      */
-    public static function ggpush_get($name, $defValue = '')
+    public static function get($name, $defValue = '')
     {
         if (isset($_GET[$name])) {
             return $_GET[$name];

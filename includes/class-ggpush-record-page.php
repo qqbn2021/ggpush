@@ -7,11 +7,32 @@ class Ggpush_Record_Page
 {
     public static function home()
     {
-        // 推送记录详情
-        if (!empty($_GET['record_id'])) {
+        $action = '';
+        if (!empty($_GET['action'])) {
+            $action = sanitize_title($_GET['action']);
+        }
+        if ('detail' === $action) {
+            // 详情
             self::record_detail();
-        } else if (isset($_GET['ggpush_clear_day']) && wp_verify_nonce($_GET['ggpushnonce'], 'delete_ggpush_record')) {
-            self::record_delete();
+        } else if ('delete' === $action) {
+            // 删除
+            if (!empty($_GET['record_id'])) {
+                $id = (int)$_GET['record_id'];
+                self::record_delete($id);
+            } else if (!empty($_GET['ids']) && is_array($_GET['ids'])) {
+                $ids = array_map('absint', array_values(wp_unslash($_GET['ids'])));
+                self::record_delete(0, $ids);
+            } else {
+                wp_die('删除失败');
+            }
+        } else if ('delete_1' === $action) {
+            self::record_delete(0, array(), 1);
+        } else if ('delete_3' === $action) {
+            self::record_delete(0, array(), 3);
+        } else if ('delete_30' === $action) {
+            self::record_delete(0, array(), 30);
+        } else if ('delete_all' === $action) {
+            self::record_delete(0, array(), 0);
         } else {
             self::record_list();
         }
@@ -23,138 +44,15 @@ class Ggpush_Record_Page
      */
     public static function record_list()
     {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ggpush_records';
-        $current_url = self_admin_url('admin.php?page=ggpush_record');
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline">推送记录</h1>
             <form method="get">
-                <input type="hidden" name="ggpushnonce"
-                       value="<?php echo esc_attr(wp_create_nonce('delete_ggpush_record')); ?>">
-                <input type="hidden" name="page" value="ggpush_record">
-                <div class="tablenav top">
-                    <div class="alignleft">
-                        <label for="bulk-action-selector-top"
-                               class="screen-reader-text">选择批量操作</label>
-                        <select name="ggpush_clear_day">
-                            <option value="-1">清除推送记录</option>
-                            <option value="1">1天之前</option>
-                            <option value="3">3天之前</option>
-                            <option value="30">30天之前</option>
-                            <option value="0">所有</option>
-                        </select>
-                        <input type="submit" class="button" value="应用">
-                    </div>
-                    <br class="clear">
-                </div>
-                <table class="wp-list-table widefat fixed">
-                    <thead>
-                    <tr>
-                        <th scope="col">Id</th>
-                        <th scope="col">推送平台</th>
-                        <th scope="col">推送方式</th>
-                        <th scope="col">推送链接数量</th>
-                        <th scope="col">推送状态</th>
-                        <th scope="col">推送结果状态码</th>
-                        <th scope="col">推送时间</th>
-                        <th scope="col">操作</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    $size = 10;
-                    $total = $wpdb->get_var('SELECT COUNT(*) FROM `' . $table_name . '`');
-                    $results = array();
-                    if (empty($total)) {
-                        $total = 0;
-                    } else {
-                        $total = intval($total);
-                        $total_paged = ceil($total / $size);
-                        $paged = (int)Ggpush_Common::ggpush_get('paged', 1);
-                        if ($paged < 1) {
-                            $paged = 1;
-                        }
-                        if ($paged > $total_paged) {
-                            $paged = $total_paged;
-                        }
-                        $prev_page = $paged - 1;
-                        $next_page = $paged + 1;
-                        if ($prev_page < 1) {
-                            $prev_page = 1;
-                        }
-                        if ($next_page > $total_paged) {
-                            $next_page = $total_paged;
-                        }
-                        $start = ($paged - 1) * $size;
-                        $table_name = $wpdb->prefix . 'ggpush_records';
-                        $sql = 'select `record_id`,`record_platform`,`record_mode`,`record_num`,`record_result_status`,`record_result_code`,`record_date` from `' . $table_name . '` order by `record_id` desc limit %d,%d';
-                        $query = $wpdb->prepare(
-                            $sql,
-                            $start,
-                            $size
-                        );
-                        $results = $wpdb->get_results($query, 'ARRAY_A');
-                    }
-                    if (!empty($results)) {
-                        foreach ($results as $result) {
-                            ?>
-                            <tr>
-                                <td><?php echo esc_html($result['record_id']); ?></td>
-                                <td><?php echo esc_html(Ggpush_Common::ggpush_format_record_platform($result['record_platform'])); ?></td>
-                                <td><?php echo esc_html(Ggpush_Common::ggpush_format_record_mode($result['record_mode'])); ?></td>
-                                <td><?php echo esc_html($result['record_num']); ?></td>
-                                <td><?php echo esc_html(Ggpush_Common::ggpush_format_result_status($result['record_result_status'])); ?></td>
-                                <td><?php echo esc_html($result['record_result_code']); ?></td>
-                                <td><?php echo esc_html($result['record_date']); ?></td>
-                                <td>
-                                    <a href="<?php echo esc_url($current_url . '&record_id=' . $result['record_id']); ?>">详情</a>
-                                </td>
-                            </tr>
-                            <?php
-                        }
-                    } else {
-                        echo '<tr><td colspan="8">暂无数据</td></tr>';
-                    }
-                    ?>
-                    </tbody>
-                </table>
+                <input type="hidden" name="page" value="ggpush-record"/>
                 <?php
-                if ($total > 0) {
-                    ?>
-                    <div class="tablenav bottom">
-                        <div class="tablenav-pages"><span
-                                    class="displaying-num"><?php echo esc_html($total); ?>条记录</span>
-                            <span class="pagination-links">
-                    <a class="first-page button" href="<?php echo esc_url($current_url); ?>">
-                        <span class="screen-reader-text">首页</span>
-                        <span aria-hidden="true">«</span>
-                    </a>
-                    <a class="prev-page button" href="<?php echo esc_url($current_url . '&paged=' . $prev_page); ?>">
-                        <span class="screen-reader-text">上一页</span>
-                        <span aria-hidden="true">‹</span>
-                    </a>
-                    <span class="screen-reader-text">当前页</span>
-                        <span id="table-paging" class="paging-input">
-                            <?php echo esc_html(sprintf('第%1$s页，共%2$s页', $paged, $total_paged)); ?>
-                        </span>
-                    </span>
-                            <a class="next-page button"
-                               href="<?php echo esc_url($current_url . '&paged=' . $next_page); ?>">
-                                <span class="screen-reader-text">下一页</span>
-                                <span aria-hidden="true">›</span>
-                            </a>
-                            <a class="last-page button"
-                               href="<?php echo esc_url($current_url . '&paged=' . $total_paged); ?>">
-                                <span class="screen-reader-text">末页</span>
-                                <span aria-hidden="true">»</span>
-                            </a>
-                            </span>
-                        </div>
-                        <br class="clear">
-                    </div>
-                    <?php
-                }
+                $ggpush_record_table = new Ggpush_Record_Table();
+                $ggpush_record_table->prepare_items();
+                $ggpush_record_table->display();
                 ?>
             </form>
         </div>
@@ -169,21 +67,20 @@ class Ggpush_Record_Page
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ggpush_records';
-        $current_url = self_admin_url('admin.php?page=ggpush_record');
-        $sql         = 'select * from `' . $table_name . '` where `record_id` = %d limit 1';
-        $query       = $wpdb->prepare(
+        $sql = 'select * from `' . $table_name . '` where `record_id` = %d limit 1';
+        $query = $wpdb->prepare(
             $sql,
-            intval( Ggpush_Common::ggpush_get( 'record_id', 0 ) )
+            intval(Ggpush_Common::get('record_id', 0))
         );
-        $results     = $wpdb->get_results( $query, ARRAY_A );
+        $results = $wpdb->get_results($query, ARRAY_A);
         $record_data = array();
-        if ( ! empty( $results ) ) {
-            foreach ( $results as $result ) {
+        if (!empty($results)) {
+            foreach ($results as $result) {
                 $record_data = $result;
             }
         }
-        if ( empty( $record_data ) ) {
-            wp_die( '暂无数据' );
+        if (empty($record_data)) {
+            wp_die('暂无数据');
         }
         ?>
         <div class="wrap">
@@ -194,31 +91,31 @@ class Ggpush_Record_Page
                 <tbody>
                 <tr>
                     <th scope="col">Id</th>
-                    <td><?php echo esc_html( $record_data['record_id'] ); ?></td>
+                    <td><?php echo esc_html($record_data['record_id']); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送平台</th>
-                    <td><?php echo esc_html(Ggpush_Common::ggpush_format_record_platform( $record_data['record_platform'] ) ); ?></td>
+                    <td><?php echo esc_html(Ggpush_Common::format_record_platform($record_data['record_platform'])); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送方式</th>
-                    <td><?php echo esc_html(Ggpush_Common::ggpush_format_record_mode( $record_data['record_mode'] ) ); ?></td>
+                    <td><?php echo esc_html(Ggpush_Common::format_record_mode($record_data['record_mode'])); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送链接数量</th>
-                    <td><?php echo esc_html( $record_data['record_num'] ); ?></td>
+                    <td><?php echo esc_html($record_data['record_num']); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送状态</th>
-                    <td><?php echo esc_html(Ggpush_Common::ggpush_format_result_status( $record_data['record_result_status'] ) ); ?></td>
+                    <td><?php echo esc_html(Ggpush_Common::format_result_status($record_data['record_result_status'])); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送结果状态码</th>
-                    <td><?php echo esc_html( $record_data['record_result_code'] ); ?></td>
+                    <td><?php echo esc_html($record_data['record_result_code']); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送时间</th>
-                    <td><?php echo esc_html( $record_data['record_date'] ); ?></td>
+                    <td><?php echo esc_html($record_data['record_date']); ?></td>
                 </tr>
                 </tbody>
             </table>
@@ -230,7 +127,7 @@ class Ggpush_Record_Page
                 <tr>
                     <td>
                 <textarea class="large-text code" readonly="readonly"
-                          rows="5"><?php echo esc_html( implode( PHP_EOL, json_decode( $record_data['record_urls'], true ) ) ); ?></textarea>
+                          rows="5"><?php echo esc_html(implode(PHP_EOL, json_decode($record_data['record_urls'], true))); ?></textarea>
                     </td>
                 </tr>
             </table>
@@ -242,13 +139,13 @@ class Ggpush_Record_Page
                 <tr>
                     <td>
                 <textarea class="large-text code" readonly="readonly"
-                          rows="5"><?php echo esc_html( $record_data['record_result'] ); ?></textarea>
+                          rows="5"><?php echo esc_html($record_data['record_result']); ?></textarea>
                     </td>
                 </tr>
             </table>
             <br class="clear">
             <?php
-            if ( ! empty( $record_data['record_result_error'] ) ) {
+            if (!empty($record_data['record_result_error'])) {
                 ?>
                 <table class="wp-list-table widefat fixed">
                     <tr>
@@ -257,7 +154,7 @@ class Ggpush_Record_Page
                     <tr>
                         <td>
                     <textarea class="large-text code" readonly="readonly"
-                              rows="5"><?php echo esc_html( $record_data['record_result_error'] ); ?></textarea>
+                              rows="5"><?php echo esc_html($record_data['record_result_error']); ?></textarea>
                         </td>
                     </tr>
                 </table>
@@ -273,28 +170,51 @@ class Ggpush_Record_Page
 
     /**
      * 删除
+     * @param int $id 删除单条记录
+     * @param array $ids 删除多条记录
+     * @param int $day 删除在此之前多少天的数据
      * @return void
      */
-    public static function record_delete()
+    public static function record_delete($id = 0, $ids = array(), $day = -1)
     {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ggpush_records';
-        $current_url = self_admin_url('admin.php?page=ggpush_record');
-        $ggpush_clear_day = (int)$_GET['ggpush_clear_day'];
-        if ($ggpush_clear_day <= 0) {
-            $end_record_date_time = time();
-        } else if (1 === $ggpush_clear_day) {
-            $end_record_date_time = strtotime('-1 day');
-        } else {
-            $end_record_date_time = strtotime('-' . $ggpush_clear_day . ' days');
+        $current_url = self_admin_url('admin.php?page=ggpush-record');
+        $result = false;
+        $last_error = '非法操作';
+        if (!empty($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'bulk-ggpush_records')) {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'ggpush_records';
+            $query = '';
+            if (!empty($id)) {
+                $sql = 'DELETE FROM `' . $table_name . '` WHERE `record_id` = %d';
+                $query = $wpdb->prepare(
+                    $sql,
+                    $id
+                );
+            } else if (!empty($ids)) {
+                $sql = 'DELETE FROM `' . $table_name . '` WHERE `record_id` in (' . implode(', ', array_fill(0, count($ids), '%d')) . ')';
+                $query = call_user_func_array(array($wpdb, 'prepare'), array_merge(array($sql), $ids));
+            } else if ($day >= 0) {
+                if ($day <= 0) {
+                    $end_record_date_time = time();
+                } else if (1 === $day) {
+                    $end_record_date_time = strtotime('-1 day');
+                } else {
+                    $end_record_date_time = strtotime('-' . $day . ' days');
+                }
+                $end_record_date = date('Y-m-d H:i:s', $end_record_date_time);
+                $sql = 'DELETE FROM `' . $table_name . '` where `record_date` <= %s';
+                $query = $wpdb->prepare(
+                    $sql,
+                    $end_record_date
+                );
+            } else {
+                wp_die('删除失败');
+            }
+            if (!empty($query)) {
+                $result = $wpdb->query($query);
+                $last_error = $wpdb->last_error;
+            }
         }
-        $end_record_date = date('Y-m-d H:i:s', $end_record_date_time);
-        $sql = 'DELETE FROM `' . $table_name . '` where `record_date` <= %s';
-        $query = $wpdb->prepare(
-            $sql,
-            $end_record_date
-        );
-        $result = $wpdb->query($query);
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline">删除推送记录</h1>
@@ -302,11 +222,11 @@ class Ggpush_Record_Page
                 <?php
                 if ($result !== false) {
                     ?>
-                    删除<?php echo esc_html($result);?>条推送记录成功
+                    删除<?php echo esc_html($result); ?>条推送记录成功
                     <?php
                 } else {
                     ?>
-                    删除推送记录失败：<?php echo esc_html($wpdb->last_error); ?>
+                    删除推送记录失败：<?php echo esc_html($last_error); ?>
                     <?php
                 }
                 ?>

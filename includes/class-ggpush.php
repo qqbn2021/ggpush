@@ -11,11 +11,7 @@ class Ggpush
      */
     public static function get_request_timeout()
     {
-        $options = get_option('ggpush_options');
-        if (!empty($options['ggpush_push_timeout'])) {
-            return intval($options['ggpush_push_timeout']);
-        }
-        return 30;
+        return Ggpush_Plugin::get_option('push_timeout', 30);
     }
 
     /**
