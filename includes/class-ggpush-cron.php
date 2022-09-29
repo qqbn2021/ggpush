@@ -5,11 +5,32 @@
  */
 class Ggpush_Cron
 {
+
+    /**
+     * 更新定时任务
+     * @param bool $enable 是否启用定时任务
+     * @return void
+     */
+    public static function update_cron($enable = true)
+    {
+        if ($enable) {
+            // 插件已激活，启用定时任务
+            self::ggpush_create_baidu_cron();
+            self::ggpush_create_baidu_fast_cron();
+            self::ggpush_create_bing_cron();
+            self::ggpush_create_indexnow_cron();
+        } else {
+            // 插件已禁用，删除定时任务
+            self::ggpush_delete_baidu_cron();
+            self::ggpush_delete_baidu_fast_cron();
+            self::ggpush_delete_bing_cron();
+            self::ggpush_delete_indexnow_cron();
+        }
+    }
+
     /**
      * 定时任务过滤器
-     *
      * @param $schedules
-     *
      * @return mixed
      */
     public static function cron_schedules($schedules)
@@ -66,9 +87,9 @@ class Ggpush_Cron
      */
     public static function ggpush_run_baidu_cron()
     {
-        $urls = Ggpush_Common::get_post_url(Ggpush_Plugin::get_option('baidu_num'), Ggpush_Plugin::get_option('baidu_type'));
+        $urls = Ggpush_Api::get_post_url(Ggpush_Plugin::get_option('baidu_num'), Ggpush_Plugin::get_option('baidu_type'));
         if (!empty($urls)) {
-            Ggpush_Common::push_baidu($urls);
+            Ggpush_Api::push_baidu($urls);
         }
     }
 
@@ -77,9 +98,9 @@ class Ggpush_Cron
      */
     public static function ggpush_run_baidu_fast_cron()
     {
-        $urls = Ggpush_Common::get_post_url(Ggpush_Plugin::get_option('baidu_fast_num'), Ggpush_Plugin::get_option('baidu_fast_type'));
+        $urls = Ggpush_Api::get_post_url(Ggpush_Plugin::get_option('baidu_fast_num'), Ggpush_Plugin::get_option('baidu_fast_type'));
         if (!empty($urls)) {
-            Ggpush_Common::push_baidu($urls, true);
+            Ggpush_Api::push_baidu($urls, true);
         }
     }
 
@@ -88,9 +109,9 @@ class Ggpush_Cron
      */
     public static function ggpush_run_bing_cron()
     {
-        $urls = Ggpush_Common::get_post_url(Ggpush_Plugin::get_option('bing_num'), Ggpush_Plugin::get_option('bing_type'));
+        $urls = Ggpush_Api::get_post_url(Ggpush_Plugin::get_option('bing_num'), Ggpush_Plugin::get_option('bing_type'));
         if (!empty($urls)) {
-            Ggpush_Common::push_bing($urls);
+            Ggpush_Api::push_bing($urls);
         }
     }
 
@@ -99,9 +120,9 @@ class Ggpush_Cron
      */
     public static function ggpush_run_indexnow_cron()
     {
-        $urls = Ggpush_Common::get_post_url(Ggpush_Plugin::get_option('indexnow_num'), Ggpush_Plugin::get_option('indexnow_type'));
+        $urls = Ggpush_Api::get_post_url(Ggpush_Plugin::get_option('indexnow_num'), Ggpush_Plugin::get_option('indexnow_type'));
         if (!empty($urls)) {
-            Ggpush_Common::push_indexnow($urls);
+            Ggpush_Api::push_indexnow($urls);
         }
     }
 
@@ -186,9 +207,6 @@ class Ggpush_Cron
     public static function ggpush_create_indexnow_cron()
     {
         if (GGPUSH_RUN_INDEXNOW_CRON) {
-            $indexnow_token = Ggpush_Plugin::get_option('indexnow_token');
-            $keyLocation = ABSPATH . 'ggpush-' . $indexnow_token . '.txt';
-            file_put_contents($keyLocation, $indexnow_token);
             if (!wp_next_scheduled('ggpush_run_indexnow_cron')) {
                 wp_schedule_event(time(), 'ggpush_indexnow_cron', 'ggpush_run_indexnow_cron');
             }
@@ -205,11 +223,6 @@ class Ggpush_Cron
         $timestamp = wp_next_scheduled('ggpush_run_indexnow_cron');
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'ggpush_run_indexnow_cron');
-        }
-        $indexnow_token = Ggpush_Plugin::get_option('indexnow_token');
-        if (!empty($indexnow_token)) {
-            $keyLocation = ABSPATH . 'ggpush-' . $indexnow_token . '.txt';
-            wp_delete_file($keyLocation);
         }
     }
 }

@@ -16,7 +16,7 @@ class Ggpush_Task_Table extends WP_List_Table
             'title' => '任务名称',
             'interval' => '推送间隔',
             'num' => '每次推送链接数量',
-            'type' => '推送方式',
+            'type' => '推送文章',
             'status' => '状态'
         );
     }
@@ -31,6 +31,8 @@ class Ggpush_Task_Table extends WP_List_Table
 
     public function prepare_items()
     {
+        // 启用定时任务
+        Ggpush_Cron::update_cron();
         $columns = $this->get_columns();
         $hidden = array();
         $sortable = array();
@@ -118,6 +120,20 @@ class Ggpush_Task_Table extends WP_List_Table
             return '';
         } else {
             return $item['num'] . '条';
+        }
+    }
+
+    public function extra_tablenav($which)
+    {
+        if ('top' === $which) {
+            ?>
+            <div class="alignleft actions">
+                <label>
+                    为了确保定时任务稳定运行，您需要定时访问：<a href="<?php echo esc_url(get_home_url() . '/wp-cron.php'); ?>"
+                                            target="_blank"><?php echo esc_url(get_home_url() . '/wp-cron.php'); ?></a>
+                </label>
+            </div>
+            <?php
         }
     }
 }

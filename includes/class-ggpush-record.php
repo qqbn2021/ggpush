@@ -1,10 +1,14 @@
 <?php
 
 /**
- * 定时任务
+ * 推送记录
  */
-class Ggpush_Record_Page
+class Ggpush_Record
 {
+    /**
+     * 推送记录
+     * @return void
+     */
     public static function home()
     {
         $action = '';
@@ -70,7 +74,7 @@ class Ggpush_Record_Page
         $sql = 'select * from `' . $table_name . '` where `record_id` = %d limit 1';
         $query = $wpdb->prepare(
             $sql,
-            intval(Ggpush_Common::get('record_id', 0))
+            intval(Ggpush_Plugin::get('record_id', 0))
         );
         $results = $wpdb->get_results($query, ARRAY_A);
         $record_data = array();
@@ -95,11 +99,11 @@ class Ggpush_Record_Page
                 </tr>
                 <tr>
                     <th scope="col">推送平台</th>
-                    <td><?php echo esc_html(Ggpush_Common::format_record_platform($record_data['record_platform'])); ?></td>
+                    <td><?php echo esc_html(Ggpush_Api::format_record_platform($record_data['record_platform'])); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送方式</th>
-                    <td><?php echo esc_html(Ggpush_Common::format_record_mode($record_data['record_mode'])); ?></td>
+                    <td><?php echo esc_html(Ggpush_Api::format_record_mode($record_data['record_mode'])); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送链接数量</th>
@@ -107,7 +111,7 @@ class Ggpush_Record_Page
                 </tr>
                 <tr>
                     <th scope="col">推送状态</th>
-                    <td><?php echo esc_html(Ggpush_Common::format_result_status($record_data['record_result_status'])); ?></td>
+                    <td><?php echo esc_html(Ggpush_Api::format_result_status($record_data['record_result_status'])); ?></td>
                 </tr>
                 <tr>
                     <th scope="col">推送结果状态码</th>

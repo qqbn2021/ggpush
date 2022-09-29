@@ -5,7 +5,6 @@
  */
 class Ggpush_Plugin
 {
-
     // 启用插件
     public static function plugin_activation()
     {
@@ -13,7 +12,7 @@ class Ggpush_Plugin
         $table_name = $wpdb->prefix . 'ggpush_records';
         $charset_collate = $wpdb->get_charset_collate();
         $sql = <<<SQL
-CREATE TABLE $table_name (
+CREATE TABLE {$table_name} (
 	`record_id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 	`record_platform` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '推送平台：1 百度，2 360，3 搜狗，4 头条，5 神马，6 bing，7 谷歌，8 indexnow，9 yandex，10 Seznam.cz',
 	`record_mode` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '推送方式：1 普通收录，2 快速收录，3 js提交，4 api提交，5 indexnow',
@@ -25,20 +24,19 @@ CREATE TABLE $table_name (
 	`record_result_error` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '失败原因' COLLATE 'utf8mb4_general_ci',
 	`record_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '推送时间',
 	PRIMARY KEY (`record_id`) USING BTREE
-) $charset_collate;
+) {$charset_collate};
 SQL;
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         // 如果表不存在才会执行创建
         maybe_create_table($table_name, $sql);
-        // 更新定时任务
-        Ggpush_Common::update_cron();
         // 创建默认配置
-        add_option('ggpush_options', array(
-            'menu_position' => 100,
-            'push_timeout' => 30,
-            'indexnow_token' => md5(time() . mt_rand(1000, 9999)),
-            'sitemap_name' => md5(time() . mt_rand(1000, 9999)),
-        ));
+        global $ggpush_options;
+        if (empty($ggpush_options)) {
+            add_option('ggpush_options', array(
+                'menu_position' => 100,
+                'push_timeout' => 30,
+            ));
+        }
     }
 
     // 删除插件执行的代码
@@ -46,10 +44,12 @@ SQL;
     {
         // 删除表
         global $wpdb;
+        global $ggpush_options;
+        $ggpush_options = get_option('ggpush_options', array());
         $table_name = $wpdb->prefix . 'ggpush_records';
         $wpdb->query('DROP TABLE IF EXISTS `' . $table_name . '`');
-        // 删除其它IndexNow密钥文件
-        Ggpush_Common::delete_indexnow_keyfile(true);
+        // 删除IndexNow密钥文件
+        Ggpush_Api::delete_indexnow_keyfile();
         // 删除配置
         delete_option('ggpush_options');
     }
@@ -58,26 +58,38 @@ SQL;
     public static function plugin_deactivation()
     {
         // 插件已禁用，删除定时任务
-        Ggpush_Common::update_cron(false);
+        Ggpush_Cron::update_cron(false);
     }
 
     // 初始化
     public static function admin_init()
     {
         // 注册设置页面
-        Ggpush_Base_Page::init_page();
-        Ggpush_Baidu_Page::init_page();
-        Ggpush_Bing_Page::init_page();
-        Ggpush_Indexnow_Page::init_page();
+        if (!empty($_REQUEST['page'])) {
+            if ('ggpush-timing-push' === $_REQUEST['page']) {
+                // 定时推送
+                Ggpush_Task::init_page();
+            } else if ('ggpush-settings' === $_REQUEST['page']) {
+                // 推送设置
+                Ggpush_Settings::init_page();
+            } else if ('ggpush-assist-push' === $_REQUEST['page']) {
+                // 辅助推送
+                Ggpush_Assist::init_page();
+            }
+        }
     }
 
     // 添加菜单
     public static function admin_menu()
     {
-        $position = null;
         global $ggpush_options;
+        $position = null;
         if (!empty($ggpush_options['menu_position'])) {
-            $position = (int)$ggpush_options['menu_position'];
+            $position = intval($ggpush_options['menu_position']);
+        }
+        $push_record = 0;
+        if (!empty($ggpush_options['push_record'])) {
+            $push_record = intval($ggpush_options['push_record']);
         }
         // 父菜单
         add_menu_page(
@@ -91,138 +103,68 @@ SQL;
         );
 
         // 推送记录页面
+        if (0 === $push_record) {
+            add_submenu_page(
+                '#ggpush',
+                '推送记录',
+                '推送记录',
+                'manage_options',
+                'ggpush-record',
+                array('Ggpush_Record', 'home')
+            );
+        }
+
+        // 推送设置
         add_submenu_page(
             '#ggpush',
-            '推送记录',
-            '推送记录',
+            '推送设置',
+            '推送设置',
             'manage_options',
-            'ggpush-record',
-            array('Ggpush_Record_Page', 'home')
+            'ggpush-settings',
+            array('Ggpush_Settings', 'show_page')
         );
 
-        // 计划任务页面
+        // 定时推送
         add_submenu_page(
             '#ggpush',
-            '定时任务',
-            '定时任务',
+            '定时推送',
+            '定时推送',
             'manage_options',
-            'ggpush-task-page',
-            array('Ggpush_Task_Page', 'task_list')
+            'ggpush-timing-push',
+            array('Ggpush_Task', 'show_page')
         );
 
-        // 基本设置页面
+        // 辅助推送
         add_submenu_page(
             '#ggpush',
-            '基本设置',
-            '基本设置',
+            '辅助推送',
+            '辅助推送',
             'manage_options',
-            'ggpush-base-page',
-            array('Ggpush_Plugin', 'show_page')
-        );
-
-        // 百度设置页面
-        add_submenu_page(
-            '#ggpush',
-            '百度推送设置',
-            '百度推送设置',
-            'manage_options',
-            'ggpush-baidu-page',
-            array('Ggpush_Plugin', 'show_page')
-        );
-
-        // bing设置页面
-        add_submenu_page(
-            '#ggpush',
-            '必应推送设置',
-            '必应推送设置',
-            'manage_options',
-            'ggpush-bing-page',
-            array('Ggpush_Plugin', 'show_page')
-        );
-
-        // indexnow设置页面
-        add_submenu_page(
-            '#ggpush',
-            'IndexNow推送设置',
-            'IndexNow推送设置',
-            'manage_options',
-            'ggpush-indexnow-page',
-            array('Ggpush_Plugin', 'show_page')
+            'ggpush-assist-push',
+            array('Ggpush_Assist', 'show_page')
         );
 
         remove_submenu_page('#ggpush', '#ggpush');
     }
 
-
-    // 显示设置页面
-    public static function show_page()
-    {
-        // 检查用户权限
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-        if (!empty($_GET['settings-updated'])) {
-            // 删除其它IndexNow密钥文件
-            Ggpush_Common::delete_indexnow_keyfile();
-            // 添加更新信息
-            add_settings_error('ggpush_messages', 'ggpush_message', '设置已保存。', 'updated');
-            // 更新定时任务
-            Ggpush_Common::update_cron();
-        }
-
-        // 显示错误/更新信息
-        settings_errors('ggpush_messages');
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-            <form action="options.php" method="post">
-                <?php
-                $page = Ggpush_Common::get('page', 'ggpush-baidu-page');
-                // 输出表单
-                settings_fields($page);
-                do_settings_sections($page);
-                // 输出保存设置按钮
-                submit_button('保存更改');
-                ?>
-            </form>
-        </div>
-        <?php
-    }
-
     /**
      * 在插件页面添加设置链接
-     *
      * @param $links
-     *
      * @return mixed
      */
     public static function setups($links)
     {
         $business_link = '<a href="https://www.ggdoc.cn/plugin/1.html" target="_blank">商业版</a>';
         array_unshift($links, $business_link);
-        $setups = '<a href="admin.php?page=ggpush-base-page">设置</a>';
-        array_unshift($links, $setups);
-        return $links;
-    }
 
-    /**
-     * 在插件页面添加同名插件处理问题
-     *
-     * @param $links
-     *
-     * @return mixed
-     */
-    public static function duplicate_name($links)
-    {
-        $settings_link = '<a href="https://www.ggdoc.cn/plugin/1.html" target="_blank">请删除其它版本《果果推送》插件</a>';
-        array_unshift($links, $settings_link);
+        $setups = '<a href="admin.php?page=ggpush-settings">设置</a>';
+        array_unshift($links, $setups);
 
         return $links;
     }
 
     /**
      * 表单输入框回调
-     *
      * @param array $args 这数据就是add_settings_field方法中第6个参数（$args）的数据
      */
     public static function field_callback($args)
@@ -280,7 +222,8 @@ SQL;
                 self::generate_checkbox(
                     array_merge(
                         array(
-                            'name' => $input_name . '[]'
+                            'name' => $input_name . '[]',
+                            'input_name' => $input_name,
                         ),
                         $form_extend
                     ),
@@ -336,7 +279,9 @@ SQL;
     public static function generate_checkbox($form_data, $checkboxs, $value = '')
     {
         ?>
-        <fieldset><p>
+        <fieldset>
+            <p>
+                <input type="hidden" name="<?php echo esc_attr($form_data['input_name']); ?>" value="">
                 <?php
                 $len = count($checkboxs);
                 foreach ($checkboxs as $k => $checkbox) {
@@ -368,7 +313,8 @@ SQL;
                     }
                 }
                 ?>
-            </p></fieldset>
+            </p>
+        </fieldset>
         <?php
     }
 
@@ -429,6 +375,13 @@ SQL;
     public static function sanitize($input)
     {
         global $ggpush_options;
+        if (empty($input)) {
+            return $ggpush_options;
+        }
+        // 更新indexnow密钥文件
+        if (isset($input['indexnow_token'])) {
+            Ggpush_Api::update_indexnow_keyfile($input['indexnow_token'], isset($ggpush_options['indexnow_token']) ? $ggpush_options['indexnow_token'] : '');
+        }
         if (empty($ggpush_options)) {
             return $input;
         } else {
@@ -437,36 +390,17 @@ SQL;
     }
 
     /**
-     * 发布新文章时推送链接
-     *
-     * @param $post_id
-     * @param $post
-     * @param $update
-     *
+     * 更新配置
+     * @param array $options
      * @return void
      */
-    public static function ggpush_to_publish($post_id, $post, $update)
+    public static function update_options($options)
     {
-        if (!wp_is_post_revision($post) && $post->post_status === 'publish') {
-            global $ggpush_options;
-            if (!empty($ggpush_options)) {
-                // 推送链接
-                $post_url = get_permalink($post_id);
-                if (!empty($ggpush_options['baidu_token']) && $ggpush_options['baidu_add_push'] == 1) {
-                    Ggpush_Common::push_baidu(array($post_url));
-                }
-                if (!empty($ggpush_options['baidu_token']) && $ggpush_options['baidu_add_fast_push'] == 1) {
-                    Ggpush_Common::push_baidu(array($post_url), true);
-                }
-                if (!empty($ggpush_options['bing_token']) && $ggpush_options['bing_add_push'] == 1) {
-                    Ggpush_Common::push_bing(array($post_url));
-                }
-                if (!empty($ggpush_options['indexnow_token']) && $ggpush_options['indexnow_add_push'] == 1) {
-                    Ggpush_Common::push_indexnow(array($post_url));
-                }
-            }
-        }
+        global $ggpush_options;
+        $ggpush_options = self::sanitize($options);
+        update_option('ggpush_options', $ggpush_options);
     }
+
 
     /**
      * 获取存储的设置值
@@ -481,5 +415,130 @@ SQL;
             return $ggpush_options[$option];
         }
         return $def_value;
+    }
+
+    /**
+     * 获取GET中的参数值
+     * @param string $name
+     * @param mixed $defValue
+     * @return mixed
+     */
+    public static function get($name, $defValue = '')
+    {
+        if (isset($_GET[$name])) {
+            return $_GET[$name];
+        }
+        return $defValue;
+    }
+
+    /**
+     * 设置上一次错误信息
+     * @param string $error
+     * @return void
+     */
+    public static function set_error($error)
+    {
+        global $ggpush_error;
+        $ggpush_error = $error;
+    }
+
+    /**
+     * 获取上一次的错误信息
+     * @return string
+     */
+    public static function get_error()
+    {
+        global $ggpush_error;
+        return $ggpush_error;
+    }
+
+    /**
+     * 添加JavaScript文件
+     * @return void
+     */
+    public static function admin_enqueue_scripts()
+    {
+        global $ggpush_options;
+        // 发布文章后推送
+        if (!empty($ggpush_options['publish_article_platform'])) {
+            self::push_after_post();
+        }
+    }
+
+    /**
+     * 发布文章后推送处理的js
+     * @return void
+     */
+    public static function push_after_post()
+    {
+        global $pagenow;
+        if (!empty($pagenow)) {
+            // 发布文章后推送
+            if ('post.php' === $pagenow) {
+                // 添加静态文件
+                wp_enqueue_script(
+                    'ggpush-sync',
+                    plugins_url('/js/ggpush_publish.min.js', GGPUSH_PLUGIN_FILE),
+                    array('jquery'),
+                    '0.0.4',
+                    true
+                );
+                wp_localize_script(
+                    'ggpush-sync',
+                    'ggpush_obj',
+                    array(
+                        'ajax_url' => admin_url('admin-ajax.php'),
+                        'nonce' => wp_create_nonce('ggpush'),
+                    )
+                );
+            } else if ('post-new.php' === $pagenow) {
+                global $post;
+                $post_id = 0;
+                if (!empty($post->ID)) {
+                    $post_id = $post->ID;
+                } else if (!empty($_GET['post'])) {
+                    $post_id = intval($_GET['post']);
+                }
+                set_transient('ggpush_publish_post_id', $post_id);
+            }
+        }
+    }
+
+    /**
+     * 发布文章后推送
+     * @return void
+     */
+    public static function wp_ajax_ggpush_publish()
+    {
+        check_ajax_referer('ggpush');
+        global $ggpush_options;
+        if (empty($ggpush_options['publish_article_platform'])) {
+            wp_send_json(array(
+                'status' => 0,
+                'msg' => '未开启发布文章后推送',
+            ));
+        }
+        $post_id = get_transient('ggpush_publish_post_id');
+        if (empty($post_id)) {
+            wp_send_json(array(
+                'status' => 0,
+                'msg' => '非发布的新文章',
+            ));
+        }
+        if (!empty($post_id) && !wp_is_post_revision($post_id) && 'publish' === get_post_status($post_id)) {
+            // 推送链接
+            $post_url = get_permalink($post_id);
+            Ggpush_Api::platform_push($post_url, $ggpush_options['publish_article_platform']);
+            delete_transient('ggpush_publish_post_id');
+            wp_send_json(array(
+                'url' => $post_url,
+                'status' => 1,
+                'msg' => '链接已推送',
+            ));
+        }
+        wp_send_json(array(
+            'status' => 0,
+            'msg' => '链接推送失败',
+        ));
     }
 }
